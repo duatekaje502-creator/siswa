@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Maya TJKT - Media Transmisi & Routing Antar-Subnet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            darkbg: '#0F172A',
+            panelbg: '#1E293B',
+            cardbg: '#0F172A',
+            codebg: '#0B0F19',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0F172A; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    @keyframes pulseBorder {
+      0%, 100% { border-color: rgba(56, 189, 248, 0.4); }
+      50% { border-color: rgba(56, 189, 248, 1); }
+    }
+    .active-step {
+      animation: pulseBorder 1.5s infinite;
+      background-color: rgba(56, 189, 248, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-darkbg text-slate-200 font-sans min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-900">
+
+  <!-- TOP NAVIGATION -->
+  <header class="bg-panelbg/90 backdrop-blur border-b border-slate-700/60 sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2.5 rounded-xl shadow-lg shadow-cyan-500/20 text-white">
+          <i class="fa-solid fa-network-wired text-xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-lg text-white tracking-wide">Lab Maya TJKT</h1>
+            <span class="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-semibold px-2 py-0.5 rounded-full">Contoh Referensi</span>
+          </div>
+          <p class="text-xs text-slate-400">Bab 1 & 4: Media Transmisi & Routing Antar-Subnet</p>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-1 sm:gap-2 bg-slate-900/70 p-1 rounded-xl border border-slate-800 text-xs sm:text-sm font-medium">
+        <button onclick="openModal('theoryModal')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+          <i class="fa-solid fa-book-open text-cyan-400"></i>
+          <span>Teori Jaringan</span>
+        </button>
+        <button onclick="openModal('instructionModal')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-amber-400"></i>
+          <span>Instruksi Lab</span>
+        </button>
+        <button class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold shadow-md shadow-blue-500/20 flex items-center gap-2">
+          <i class="fa-solid fa-diagram-project"></i>
+          <span>Simulasi Jaringan</span>
+        </button>
+        <button onclick="openModal('lkpdModal')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-emerald-400"></i>
+          <span>Evaluasi / LKPD</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN 3-COLUMN WORKSPACE -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- PANEL 1: KONFIGURASI MEDIA & IP (4 Cols) -->
+    <section class="lg:col-span-4 bg-panelbg border border-slate-700/60 rounded-2xl flex flex-col overflow-hidden shadow-xl">
+      <div class="bg-slate-900/80 px-4 py-3 border-b border-slate-700/60 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-cyan-400 text-sm"></i>
+          <span class="font-mono text-xs font-semibold text-slate-300">PANEL KONFIGURASI PERANGKAT</span>
+        </div>
+        <button onclick="resetConfig()" class="text-xs text-slate-400 hover:text-cyan-400 transition flex items-center gap-1">
+          <i class="fa-solid fa-rotate-left text-[10px]"></i> Reset
+        </button>
+      </div>
+
+      <div class="p-4 space-y-4 overflow-y-auto flex-1 text-xs">
+        <!-- Step 1: Media Transmisi -->
+        <div class="bg-codebg p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="font-mono font-semibold text-cyan-400 flex items-center gap-1.5">
+            <span class="bg-cyan-500/20 px-1.5 py-0.5 rounded text-[11px]">1</span>
+            <span>Pilih Media Kabel (PC ↔ Router)</span>
+          </div>
+          <p class="text-slate-400 text-[11px]">PC dan Router merupakan perangkat sejenis (layer 3). Pilih jenis kabel UTP yang tepat:</p>
+          <select id="cableType" onchange="updateSimulationState()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono focus:outline-none focus:ring-1 focus:ring-cyan-500">
+            <option value="straight">UTP Straight-Through (T568B - T568B)</option>
+            <option value="crossover" selected>UTP Cross-Over (T568A - T568B)</option>
+            <option value="fiber">Fiber Optic Single-Mode (LC-LC)</option>
+          </select>
+        </div>
+
+        <!-- Step 2: Konfigurasi PC0 (Subnet A) -->
+        <div class="bg-codebg p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="font-mono font-semibold text-emerald-400 flex items-center gap-1.5">
+            <span class="bg-emerald-500/20 px-1.5 py-0.5 rounded text-[11px]">2</span>
+            <span>PC0 (Jaringan A: 192.168.1.0/24)</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400">IP Address PC0</label>
+              <input type="text" id="pc0Ip" value="192.168.1.2" oninput="updateSimulationState()" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono text-emerald-300 mt-0.5">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400">Gateway PC0</label>
+              <input type="text" id="pc0Gw" value="192.168.1.1" oninput="updateSimulationState()" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono text-emerald-300 mt-0.5">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Konfigurasi Router0 -->
+        <div class="bg-codebg p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="font-mono font-semibold text-amber-400 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="bg-amber-500/20 px-1.5 py-0.5 rounded text-[11px]">3</span>
+              <span>Router0 (Cisco 2811)</span>
+            </div>
+            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" id="routerPortOn" checked onchange="updateSimulationState()" class="accent-amber-500 w-3.5 h-3.5">
+              <span class="text-[11px] text-amber-300">no shutdown</span>
+            </label>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400">Fa0/0 (ke PC0)</label>
+              <input type="text" id="rFa0" value="192.168.1.1" oninput="updateSimulationState()" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono text-amber-300 mt-0.5">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400">Fa0/1 (ke PC1)</label>
+              <input type="text" id="rFa1" value="172.16.10.1" oninput="updateSimulationState()" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono text-amber-300 mt-0.5">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Konfigurasi PC1 (Subnet B) -->
+        <div class="bg-codebg p-3 rounded-xl border border-slate-800 space-y-2">
+          <div class="font-mono font-semibold text-purple-400 flex items-center gap-1.5">
+            <span class="bg-purple-500/20 px-1.5 py-0.5 rounded text-[11px]">4</span>
+            <span>PC1 (Jaringan B: 172.16.10.0/24)</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400">IP Address PC1</label>
+              <input type="text" id="pc1Ip" value="172.16.10.2" oninput="updateSimulationState()" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono text-purple-300 mt-0.5">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400">Gateway PC1</label>
+              <input type="text" id="pc1Gw" value="172.16.10.1" oninput="updateSimulationState()" class="w-full bg-slate-800 border border-slate-700 rounded p-1.5 font-mono text-purple-300 mt-0.5">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="p-3 bg-slate-900 border-t border-slate-700/60">
+        <button onclick="runPingSimulation()" id="btnPing" class="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl shadow-lg shadow-cyan-500/20 transition flex items-center justify-center gap-2 text-sm">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Kirim Paket ICMP (Ping PC0 → PC1)</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- PANEL 2: KANVAS VISUALISASI TOPOLOGI & PROSES PAKET (5 Cols) -->
+    <section class="lg:col-span-5 bg-panelbg border border-slate-700/60 rounded-2xl flex flex-col overflow-hidden shadow-xl">
+      <div class="bg-slate-900/80 px-4 py-3 border-b border-slate-700/60 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-eye text-cyan-400 text-sm"></i>
+          <span class="font-mono text-xs font-semibold text-slate-300">VISUALISASI TOPOLOGI & PROSES</span>
+        </div>
+        <span id="linkBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono">
+          ● Link Up (Hijau)
+        </span>
+      </div>
+
+      <!-- Interactive Topology Canvas -->
+      <div class="relative flex-1 bg-codebg min-h-[340px] flex flex-col items-center justify-center p-4 overflow-hidden">
+        <!-- Background Grid -->
+        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#38BDF8 1px, transparent 1px); background-size: 20px 20px;"></div>
+
+        <!-- SVG Topology Diagram -->
+        <svg viewBox="0 0 500 280" class="w-full h-full max-h-[310px] z-10">
+          <!-- Subnet Zones -->
+          <rect x="15" y="135" width="195" height="130" rx="12" fill="rgba(16, 185, 129, 0.06)" stroke="rgba(16, 185, 129, 0.3)" stroke-dasharray="4"/>
+          <text x="112" y="255" text-anchor="middle" fill="#34D399" font-size="10" font-family="Fira Code">Subnet A: 192.168.1.0/24</text>
+
+          <rect x="290" y="135" width="195" height="130" rx="12" fill="rgba(168, 85, 247, 0.06)" stroke="rgba(168, 85, 247, 0.3)" stroke-dasharray="4"/>
+          <text x="387" y="255" text-anchor="middle" fill="#C084FC" font-size="10" font-family="Fira Code">Subnet B: 172.16.10.0/24</text>
+
+          <!-- Connection Lines -->
+          <line id="lineLeft" x1="115" y1="185" x2="250" y2="75" stroke="#10B981" stroke-width="3" stroke-dasharray="6,4"/>
+          <line id="lineRight" x1="250" y1="75" x2="385" y2="185" stroke="#10B981" stroke-width="3" stroke-dasharray="6,4"/>
+
+          <!-- Link Status Triangles (Packet Tracer Style) -->
+          <circle id="dotLeft1" cx="140" cy="165" r="5" fill="#10B981"/>
+          <circle id="dotLeft2" cx="222" cy="98" r="5" fill="#10B981"/>
+          <circle id="dotRight1" cx="278" cy="98" r="5" fill="#10B981"/>
+          <circle id="dotRight2" cx="360" cy="165" r="5" fill="#10B981"/>
+
+          <!-- Cable Label -->
+          <rect x="175" y="128" width="150" height="20" rx="6" fill="#1E293B" stroke="#334155"/>
+          <text id="svgCableLabel" x="250" y="141" text-anchor="middle" fill="#94A3B8" font-size="9.5" font-family="Fira Code">Kabel: Cross-Over</text>
+
+          <!-- ROUTER NODE -->
+          <g transform="translate(215, 35)">
+            <rect x="0" y="0" width="70" height="44" rx="10" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+            <text x="35" y="26" text-anchor="middle" fill="#FBBF24" font-size="11" font-weight="bold" font-family="Inter">Router0</text>
+            <text x="35" y="38" text-anchor="middle" fill="#94A3B8" font-size="8" font-family="Fira Code">2811</text>
+          </g>
+          <text id="svgFa0Label" x="180" y="65" text-anchor="end" fill="#FBBF24" font-size="9.5" font-family="Fira Code">Fa0/0: .1.1</text>
+          <text id="svgFa1Label" x="320" y="65" text-anchor="start" fill="#FBBF24" font-size="9.5" font-family="Fira Code">Fa0/1: .10.1</text>
+
+          <!-- PC0 NODE -->
+          <g transform="translate(75, 165)">
+            <rect x="0" y="0" width="80" height="52" rx="10" fill="#1E293B" stroke="#10B981" stroke-width="2"/>
+            <text x="40" y="23" text-anchor="middle" fill="#34D399" font-size="11" font-weight="bold">PC0</text>
+            <text id="svgPc0Ip" x="40" y="37" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Fira Code">192.168.1.2</text>
+            <text id="svgPc0Gw" x="40" y="47" text-anchor="middle" fill="#64748B" font-size="7.5" font-family="Fira Code">GW: 192.168.1.1</text>
+          </g>
+
+          <!-- PC1 NODE -->
+          <g transform="translate(345, 165)">
+            <rect x="0" y="0" width="80" height="52" rx="10" fill="#1E293B" stroke="#A855F7" stroke-width="2"/>
+            <text x="40" y="23" text-anchor="middle" fill="#C084FC" font-size="11" font-weight="bold">PC1</text>
+            <text id="svgPc1Ip" x="40" y="37" text-anchor="middle" fill="#E2E8F0" font-size="9" font-family="Fira Code">172.16.10.2</text>
+            <text id="svgPc1Gw" x="40" y="47" text-anchor="middle" fill="#64748B" font-size="7.5" font-family="Fira Code">GW: 172.16.10.1</text>
+          </g>
+
+          <!-- ANIMATED ICMP PACKET -->
+          <g id="packetObj" transform="translate(115, 185)" opacity="0">
+            <rect x="-18" y="-12" width="36" height="24" rx="6" fill="#38BDF8" stroke="#FFFFFF" stroke-width="1.5"/>
+            <text id="packetText" x="0" y="3" text-anchor="middle" fill="#0F172A" font-size="9" font-weight="bold" font-family="Fira Code">ICMP</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Process Stage Indicator Bar -->
+      <div class="p-3 bg-slate-900 border-t border-slate-700/60">
+        <div class="text-[11px] text-slate-400 mb-1.5 font-semibold">Tahapan Perjalanan Paket Data:</div>
+        <div class="grid grid-cols-4 gap-1.5 text-center font-mono text-[10px]">
+          <div id="stage1" class="p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-400">1. Cek Kabel</div>
+          <div id="stage2" class="p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-400">2. Ke Gateway</div>
+          <div id="stage3" class="p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-400">3. Routing IP</div>
+          <div id="stage4" class="p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-400">4. Reply ICMP</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL 3: MONITOR PROSES & TERMINAL LOG (3 Cols) -->
+    <section class="lg:col-span-3 bg-panelbg border border-slate-700/60 rounded-2xl flex flex-col overflow-hidden shadow-xl">
+      <div class="bg-slate-900/80 px-4 py-3 border-b border-slate-700/60 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-terminal text-emerald-400 text-sm"></i>
+          <span class="font-mono text-xs font-semibold text-slate-300">LOG PROSES & STATUS</span>
+        </div>
+        <button onclick="clearLogs()" class="text-[11px] text-slate-400 hover:text-white">Bersihkan</button>
+      </div>
+
+      <!-- Status Summary Card -->
+      <div class="p-3 border-b border-slate-700/60">
+        <div id="statusCard" class="p-3 rounded-xl bg-slate-900 border border-slate-700 text-center space-y-1">
+          <div id="statusIcon" class="text-2xl text-cyan-400"><i class="fa-solid fa-circle-info"></i></div>
+          <div id="statusTitle" class="font-mono text-xs font-bold text-white">SIAP DIUJI COBA</div>
+          <div id="statusDesc" class="text-[11px] text-slate-400">Klik tombol Kirim Paket ICMP untuk melihat alur prosesnya.</div>
+        </div>
+      </div>
+
+      <!-- Step-by-Step Terminal Log -->
+      <div id="logContainer" class="flex-1 bg-codebg p-3 font-mono text-[11px] space-y-2 overflow-y-auto max-h-[320px]">
+        <div class="text-slate-500">// Menunggu eksekusi simulasi...</div>
+        <div class="text-cyan-400">&gt; Topologi 2 subnet dimuat.</div>
+        <div class="text-slate-300">&gt; PC0 (192.168.1.2) siap mengirim ping ke PC1 (172.16.10.2).</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 border-t border-slate-800 py-3 px-4 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div>Contoh Referensi Proyek <strong>Lab Maya TJKT</strong> (Dibuat dengan Gemini AI & GitHub Pages)</div>
+      <div class="text-slate-400">SMK Teknik Jaringan Komputer & Telekomunikasi</div>
+    </div>
+  </footer>
+
+  <!-- MODAL 1: TEORI -->
+  <div id="theoryModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-panelbg border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-book-open text-cyan-400"></i> Teori Media Transmisi & Routing Subnet
+        </h2>
+        <button onclick="closeModal('theoryModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
+        <p><strong>1. Pemilihan Media Kabel (Bab 1):</strong> Pada perangkat jaringan lama tanpa fitur Auto-MDIX, menghubungkan dua perangkat sejenis (seperti <em>PC ke Router</em> atau <em>Switch ke Switch</em>) memerlukan kabel <strong>UTP Cross-Over</strong> agar pin TX (Transmit) bertemu dengan pin RX (Receive).</p>
+        <p><strong>2. Routing Antar-Subnet (Bab 4):</strong> Dua jaringan dengan alamat network berbeda (misal <code class="text-emerald-400">192.168.1.0/24</code> dan <code class="text-purple-400">172.16.10.0/24</code>) tidak dapat berkomunikasi langsung tanpa <strong>Router</strong>.</p>
+        <p><strong>3. Peran Default Gateway:</strong> Setiap PC wajib mengisi <em>Default Gateway</em> dengan alamat IP interface Router yang terhubung langsung ke segmen jaringan PC tersebut.</p>
+      </div>
+      <div class="text-right pt-2">
+        <button onclick="closeModal('theoryModal')" class="px-4 py-1.5 bg-cyan-600 text-white rounded-lg text-xs font-semibold">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: INSTRUKSI -->
+  <div id="instructionModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-panelbg border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-amber-400"></i> Langkah Praktikum Simulasi
+        </h2>
+        <button onclick="closeModal('instructionModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <ol class="list-decimal list-inside space-y-2 text-xs text-slate-300">
+        <li>Periksa konfigurasi default pada Panel Kiri, lalu klik <strong>"Kirim Paket ICMP (Ping PC0 → PC1)"</strong> untuk melihat proses komunikasi sukses.</li>
+        <li>Coba ubah <strong>Media Kabel</strong> menjadi <em>UTP Straight-Through</em> atau matikan centang <strong>no shutdown</strong> pada Router, lalu uji kembali untuk melihat bagaimana sistem mendeteksi kegagalan layer fisik.</li>
+        <li>Coba ubah <strong>Gateway PC0</strong> menjadi salah (misal <code>192.168.1.99</code>) dan amati log proses saat paket berhenti di PC0 karena tidak menemukan pintu keluar menuju subnet lain.</li>
+      </ol>
+      <div class="text-right pt-2">
+        <button onclick="closeModal('instructionModal')" class="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold">Mulai Eksperimen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: LKPD -->
+  <div id="lkpdModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-panelbg border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+        <h2 class="text-base font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-emerald-400"></i> Pertanyaan Evaluasi Singkat
+        </h2>
+        <button onclick="closeModal('lkpdModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold text-slate-200">1. Mengapa kabel UTP Straight-Through menyebabkan lampu indikator menjadi merah pada simulasi PC ke Router?</label>
+          <textarea rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 mt-1 text-slate-200" placeholder="Tulis jawaban analisis Anda..."></textarea>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-200">2. Apa yang terjadi jika IP Gateway PC1 tidak sama dengan IP interface Fa0/1 Router0?</label>
+          <textarea rows="2" class="w-full bg-slate-900 border border-slate-700 rounded p-2 mt-1 text-slate-200" placeholder="Tulis jawaban analisis Anda..."></textarea>
+        </div>
+      </div>
+      <div class="text-right pt-2">
+        <button onclick="alert('Jawaban tersimpan!'); closeModal('lkpdModal');" class="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Simpan Jawaban</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT SIMULATION ENGINE -->
+  <script>
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function addLog(msg, colorClass = 'text-slate-300') {
+      const container = document.getElementById('logContainer');
+      const div = document.createElement('div');
+      div.className = colorClass;
+      div.innerHTML = `&gt; ${msg}`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('logContainer').innerHTML = '<div class="text-slate-500">// Log dibersihkan. Siap menerima perintah...</div>';
+    }
+
+    function resetConfig() {
+      document.getElementById('cableType').value = 'crossover';
+      document.getElementById('pc0Ip').value = '192.168.1.2';
+      document.getElementById('pc0Gw').value = '192.168.1.1';
+      document.getElementById('routerPortOn').checked = true;
+      document.getElementById('rFa0').value = '192.168.1.1';
+      document.getElementById('rFa1').value = '172.16.10.1';
+      document.getElementById('pc1Ip').value = '172.16.10.2';
+      document.getElementById('pc1Gw').value = '172.16.10.1';
+      updateSimulationState();
+      addLog('Konfigurasi dikembalikan ke pengaturan awal.', 'text-cyan-400');
+    }
+
+    function updateSimulationState() {
+      const cable = document.getElementById('cableType').value;
+      const portOn = document.getElementById('routerPortOn').checked;
+      const pc0Ip = document.getElementById('pc0Ip').value.trim();
+      const pc0Gw = document.getElementById('pc0Gw').value.trim();
+      const rFa0 = document.getElementById('rFa0').value.trim();
+      const rFa1 = document.getElementById('rFa1').value.trim();
+      const pc1Ip = document.getElementById('pc1Ip').value.trim();
+      const pc1Gw = document.getElementById('pc1Gw').value.trim();
+
+      // Update SVG Labels
+      document.getElementById('svgPc0Ip').textContent = pc0Ip;
+      document.getElementById('svgPc0Gw').textContent = 'GW: ' + pc0Gw;
+      document.getElementById('svgPc1Ip').textContent = pc1Ip;
+      document.getElementById('svgPc1Gw').textContent = 'GW: ' + pc1Gw;
+      document.getElementById('svgFa0Label').textContent = 'Fa0/0: ' + rFa0;
+      document.getElementById('svgFa1Label').textContent = 'Fa0/1: ' + rFa1;
+
+      const cableNames = {
+        'crossover': 'Kabel: Cross-Over',
+        'straight': 'Kabel: Straight-Through',
+        'fiber': 'Kabel: Fiber Optic'
+      };
+      document.getElementById('svgCableLabel').textContent = cableNames[cable];
+
+      // Determine Physical Link Status
+      const isPhysicalValid = (cable === 'crossover' || cable === 'fiber') && portOn;
+      const color = isPhysicalValid ? '#10B981' : '#EF4444';
+
+      document.getElementById('lineLeft').setAttribute('stroke', color);
+      document.getElementById('lineRight').setAttribute('stroke', color);
+      ['dotLeft1', 'dotLeft2', 'dotRight1', 'dotRight2'].forEach(id => {
+        document.getElementById(id).setAttribute('fill', color);
+      });
+
+      const badge = document.getElementById('linkBadge');
+      if (isPhysicalValid) {
+        badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono';
+        badge.textContent = '● Link Up (Hijau)';
+      } else {
+        badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 font-mono';
+        badge.textContent = '● Link Down (Merah)';
+      }
+    }
+
+    function setStageHighlight(stageNum, state) {
+      for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById('stage' + i);
+        if (i < stageNum) {
+          el.className = 'p-1.5 rounded bg-emerald-950/60 border border-emerald-500/50 text-emerald-300';
+        } else if (i === stageNum) {
+          if (state === 'fail') {
+            el.className = 'p-1.5 rounded bg-rose-950/80 border border-rose-500 text-rose-300 font-bold';
+          } else {
+            el.className = 'p-1.5 rounded active-step border text-cyan-300 font-bold';
+          }
+        } else {
+          el.className = 'p-1.5 rounded bg-slate-800 border border-slate-700 text-slate-400';
+        }
+      }
+    }
+
+    function animatePacket(x1, y1, x2, y2, label, bgColor, duration = 700) {
+      return new Promise(resolve => {
+        const pkt = document.getElementById('packetObj');
+        const pktRect = pkt.querySelector('rect');
+        const pktText = document.getElementById('packetText');
+        pktRect.setAttribute('fill', bgColor);
+        pktText.textContent = label;
+        pkt.setAttribute('opacity', '1');
+
+        const start = performance.now();
+        function step(now) {
+          const progress = Math.min((now - start) / duration, 1);
+          const curX = x1 + (x2 - x1) * progress;
+          const curY = y1 + (y2 - y1) * progress;
+          pkt.setAttribute('transform', `translate(${curX}, ${curY})`);
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else {
+            resolve();
+          }
+        }
+        requestAnimationFrame(step);
+      });
+    }
+
+    function updateStatusCard(type, title, desc) {
+      const card = document.getElementById('statusCard');
+      const icon = document.getElementById('statusIcon');
+      const titleEl = document.getElementById('statusTitle');
+      const descEl = document.getElementById('statusDesc');
+
+      if (type === 'success') {
+        card.className = 'p-3 rounded-xl bg-emerald-950/40 border border-emerald-500 text-center space-y-1';
+        icon.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+        titleEl.className = 'font-mono text-xs font-bold text-emerald-300';
+      } else if (type === 'error') {
+        card.className = 'p-3 rounded-xl bg-rose-950/40 border border-rose-500 text-center space-y-1';
+        icon.innerHTML = '<i class="fa-solid fa-circle-xmark text-rose-400"></i>';
+        titleEl.className = 'font-mono text-xs font-bold text-rose-300';
+      } else {
+        card.className = 'p-3 rounded-xl bg-cyan-950/40 border border-cyan-500 text-center space-y-1';
+        icon.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-cyan-400"></i>';
+        titleEl.className = 'font-mono text-xs font-bold text-cyan-300';
+      }
+      titleEl.textContent = title;
+      descEl.textContent = desc;
+    }
+
+    async function runPingSimulation() {
+      const btn = document.getElementById('btnPing');
+      btn.disabled = true;
+      btn.classList.add('opacity-50');
+
+      const cable = document.getElementById('cableType').value;
+      const portOn = document.getElementById('routerPortOn').checked;
+      const pc0Ip = document.getElementById('pc0Ip').value.trim();
+      const pc0Gw = document.getElementById('pc0Gw').value.trim();
+      const rFa0 = document.getElementById('rFa0').value.trim();
+      const rFa1 = document.getElementById('rFa1').value.trim();
+      const pc1Ip = document.getElementById('pc1Ip').value.trim();
+      const pc1Gw = document.getElementById('pc1Gw').value.trim();
+
+      clearLogs();
+      updateStatusCard('loading', 'MEMPROSES PENGIRIMAN...', 'Mengevaluasi layer fisik & routing...');
+
+      // STAGE 1: Physical Layer Check
+      setStageHighlight(1, 'run');
+      addLog(`[Tahap 1] Memeriksa media kabel (${cable}) & status port router...`, 'text-cyan-400');
+      await new Promise(r => setTimeout(r, 500));
+
+      if (cable === 'straight') {
+        setStageHighlight(1, 'fail');
+        addLog('GAGAL: Kabel Straight-Through tidak cocok untuk menghubungkan PC langsung ke Router (perangkat sejenis). Gunakan Cross-Over!', 'text-rose-400');
+        updateStatusCard('error', 'FAILED: KABEL TIDAK COCOK', 'Pin TX/RX bertabrakan. Ganti ke kabel Cross-Over.');
+        btn.disabled = false; btn.classList.remove('opacity-50');
+        return;
+      }
+
+      if (!portOn) {
+        setStageHighlight(1, 'fail');
+        addLog('GAGAL: Interface Router dalam keadaan administratively down. Aktifkan perintah "no shutdown"!', 'text-rose-400');
+        updateStatusCard('error', 'FAILED: PORT ROUTER MATI', 'Centang opsi "no shutdown" pada Router0.');
+        btn.disabled = false; btn.classList.remove('opacity-50');
+        return;
+      }
+
+      addLog('OK: Koneksi fisik aktif (Link Up).', 'text-emerald-400');
+
+      // STAGE 2: PC0 -> Router Gateway
+      setStageHighlight(2, 'run');
+      addLog(`[Tahap 2] PC0 (${pc0Ip}) mengirim ICMP Echo Request ke Gateway (${pc0Gw})...`, 'text-cyan-400');
+      await animatePacket(115, 185, 250, 75, 'ICMP', '#38BDF8', 750);
+
+      if (pc0Gw !== rFa0) {
+        setStageHighlight(2, 'fail');
+        document.getElementById('packetObj').setAttribute('opacity', '0');
+        addLog(`GAGAL: Default Gateway PC0 (${pc0Gw}) tidak sesuai dengan IP Fa0/0 Router0 (${rFa0}). Paket dibuang!`, 'text-rose-400');
+        updateStatusCard('error', 'DESTINATION HOST UNREACHABLE', 'Gateway PC0 tidak cocok dengan IP interface Router.');
+        btn.disabled = false; btn.classList.remove('opacity-50');
+        return;
+      }
+
+      // STAGE 3: Router -> PC1
+      setStageHighlight(3, 'run');
+      addLog(`[Tahap 3] Router0 meneruskan paket dari subnet Fa0/0 ke Fa0/1 (${rFa1}) menuju PC1 (${pc1Ip})...`, 'text-amber-300');
+      await animatePacket(250, 75, 385, 185, 'ICMP', '#FBBF24', 750);
+
+      // STAGE 4: PC1 Reply -> Router -> PC0
+      setStageHighlight(4, 'run');
+      if (pc1Gw !== rFa1) {
+        setStageHighlight(4, 'fail');
+        document.getElementById('packetObj').setAttribute('opacity', '0');
+        addLog(`GAGAL (Request Timed Out): PC1 menerima paket, tetapi Gateway PC1 (${pc1Gw}) salah sehingga tidak bisa mengirim balasan ke Fa0/1 (${rFa1})!`, 'text-rose-400');
+        updateStatusCard('error', 'REQUEST TIMED OUT', 'Gateway PC1 salah, paket balasan gagal kembali.');
+        btn.disabled = false; btn.classList.remove('opacity-50');
+        return;
+      }
+
+      addLog(`[Tahap 4] PC1 mengirim ICMP Echo Reply kembali ke PC0 melalui Router0...`, 'text-emerald-300');
+      await animatePacket(385, 185, 250, 75, 'REPLY', '#34D399', 650);
+      await animatePacket(250, 75, 115, 185, 'REPLY', '#34D399', 650);
+      document.getElementById('packetObj').setAttribute('opacity', '0');
+
+      setStageHighlight(5, 'done');
+      addLog(`SUKSES: Reply from ${pc1Ip}: bytes=32 time=2ms TTL=127`, 'text-emerald-400 font-bold');
+      updateStatusCard('success', 'PING BERHASIL (SUCCESSFUL)', `Koneksi antar-subnet ${pc0Ip} ↔ ${pc1Ip} berjalan sempurna!`);
+
+      btn.disabled = false;
+      btn.classList.remove('opacity-50');
+    }
+
+    window.onload = updateSimulationState;
+  </script>
+</body>
+</html>
